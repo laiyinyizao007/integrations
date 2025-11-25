@@ -1,0 +1,98 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.next/
+out/
+
+# Test coverage
+coverage/
+.nyc_output/
+.coverage
+htmlcov/
+
+# Sensitive files
+*.key
+*.pem
+*.p12
+*.crt
+cookies.txt
+*.cookie
+credentials.json
+secrets.yaml
+secrets.yml
+
+# Documentation archives
+*_REPORT.md
+*_SUMMARY.md
+*_ANALYSIS.md
+
+# Backup files
+*.bak
+*.backup
+*~
+*.swp
+

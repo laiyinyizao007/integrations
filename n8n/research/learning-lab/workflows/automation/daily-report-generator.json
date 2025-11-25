@@ -1,0 +1,271 @@
+{
+  "name": "Daily Report Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "notes": "每天早上8点触发"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 生成报告日期范围\nconst now = new Date();\nconst yesterday = new Date(now);\nyesterday.setDate(yesterday.getDate() - 1);\n\nreturn {\n  json: {\n    reportDate: yesterday.toISOString().split('T')[0],\n    startTime: new Date(yesterday.setHours(0, 0, 0, 0)).toISOString(),\n    endTime: new Date(yesterday.setHours(23, 59, 59, 999)).toISOString(),\n    reportTitle: `日报 - ${yesterday.toISOString().split('T')[0]}`\n  }\n};"
+      },
+      "id": "prepare-dates",
+      "name": "Prepare Dates",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_URL}}/analytics/summary",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "start_date",
+              "value": "={{$json.startTime}}"
+            },
+            {
+              "name": "end_date",
+              "value": "={{$json.endTime}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-analytics",
+      "name": "Fetch Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        300
+      ],
+      "notes": "获取分析数据"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_URL}}/sales/daily",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{$node['Prepare Dates'].json.reportDate}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-sales",
+      "name": "Fetch Sales",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        480
+      ],
+      "notes": "获取销售数据"
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        390
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 合并数据并生成报告\nconst items = $input.all();\nconst dateInfo = $node['Prepare Dates'].json;\nconst analytics = items[0].json;\nconst sales = items[1].json;\n\n// 计算关键指标\nconst totalRevenue = sales.total_revenue || 0;\nconst totalOrders = sales.total_orders || 0;\nconst avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;\n\nconst pageViews = analytics.page_views || 0;\nconst uniqueVisitors = analytics.unique_visitors || 0;\nconst conversionRate = uniqueVisitors > 0 ? ((totalOrders / uniqueVisitors) * 100).toFixed(2) : 0;\n\n// 生成报告文本\nconst reportText = `\n📊 ${dateInfo.reportTitle}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 销售概况\n━━━━━━━━━━━━━━━━━━━━━━\n• 总收入: ¥${totalRevenue.toLocaleString()}\n• 订单数: ${totalOrders}\n• 平均订单额: ¥${avgOrderValue}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📈 流量统计\n━━━━━━━━━━━━━━━━━━━━━━\n• 页面浏览量: ${pageViews.toLocaleString()}\n• 独立访客: ${uniqueVisitors.toLocaleString()}\n• 转化率: ${conversionRate}%\n\n━━━━━━━━━━━━━━━━━━━━━━\n📅 报告日期: ${dateInfo.reportDate}\n⏰ 生成时间: ${new Date().toLocaleString('zh-CN')}\n━━━━━━━━━━━━━━━━━━━━━━\n`;\n\n// 生成HTML格式报告\nconst reportHTML = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }\n    h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }\n    .metric-box { background: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 5px; }\n    .metric-title { font-weight: bold; color: #34495e; margin-bottom: 5px; }\n    .metric-value { font-size: 24px; color: #3498db; }\n    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #bdc3c7; color: #7f8c8d; }\n  </style>\n</head>\n<body>\n  <h1>${dateInfo.reportTitle}</h1>\n  \n  <h2>💰 销售概况</h2>\n  <div class=\"metric-box\">\n    <div class=\"metric-title\">总收入</div>\n    <div class=\"metric-value\">¥${totalRevenue.toLocaleString()}</div>\n  </div>\n  <div class=\"metric-box\">\n    <div class=\"metric-title\">订单数</div>\n    <div class=\"metric-value\">${totalOrders}</div>\n  </div>\n  <div class=\"metric-box\">\n    <div class=\"metric-title\">平均订单额</div>\n    <div class=\"metric-value\">¥${avgOrderValue}</div>\n  </div>\n  \n  <h2>📈 流量统计</h2>\n  <div class=\"metric-box\">\n    <div class=\"metric-title\">页面浏览量</div>\n    <div class=\"metric-value\">${pageViews.toLocaleString()}</div>\n  </div>\n  <div class=\"metric-box\">\n    <div class=\"metric-title\">独立访客</div>\n    <div class=\"metric-value\">${uniqueVisitors.toLocaleString()}</div>\n  </div>\n  <div class=\"metric-box\">\n    <div class=\"metric-title\">转化率</div>\n    <div class=\"metric-value\">${conversionRate}%</div>\n  </div>\n  \n  <div class=\"footer\">\n    <p>报告日期: ${dateInfo.reportDate}</p>\n    <p>生成时间: ${new Date().toLocaleString('zh-CN')}</p>\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    reportText: reportText,\n    reportHTML: reportHTML,\n    metrics: {\n      revenue: totalRevenue,\n      orders: totalOrders,\n      avgOrderValue: avgOrderValue,\n      pageViews: pageViews,\n      uniqueVisitors: uniqueVisitors,\n      conversionRate: conversionRate\n    },\n    reportDate: dateInfo.reportDate,\n    generatedAt: new Date().toISOString()\n  }\n};"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        390
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_REPORT_CHAT_ID}}",
+        "text": "={{$json.reportText}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-telegram",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.REPORT_EMAIL_FROM}}",
+        "toEmail": "={{$env.REPORT_EMAIL_TO}}",
+        "subject": "={{$json.reportTitle}}",
+        "emailType": "html",
+        "message": "={{$json.reportHTML}}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        480
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Dates": {
+      "main": [
+        [
+          {
+            "node": "Fetch Analytics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Analytics": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Sales": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Report": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "automation",
+      "id": "1"
+    },
+    {
+      "name": "reporting",
+      "id": "2"
+    },
+    {
+      "name": "scheduled",
+      "id": "3"
+    }
+  ],
+  "meta": {
+    "instanceId": "learning-project"
+  },
+  "id": "daily-report-generator",
+  "versionId": "1.0.0",
+  "notes": "每日自动生成业务报告\n\n功能：\n- 每天早上8点自动触发\n- 从API获取销售和分析数据\n- 合并数据生成报告\n- 同时发送Telegram消息和邮件\n\n学习要点：\n1. Schedule Trigger - 定时任务\n2. 并行API调用提高效率\n3. Merge节点合并数据\n4. Function节点处理复杂逻辑\n5. 多渠道通知（Telegram + Email）\n6. HTML格式报告生成\n\n环境变量配置：\nAPI_URL=https://api.example.com\nTELEGRAM_REPORT_CHAT_ID=your_chat_id\nREPORT_EMAIL_FROM=reports@example.com\nREPORT_EMAIL_TO=team@example.com\n\n扩展建议：\n- 添加图表生成\n- 连接数据库存储历史数据\n- 添加异常检测和告警\n- 支持更多报告格式（PDF等）"
+}

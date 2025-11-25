@@ -1,0 +1,201 @@
+{
+  "name": "Final: Simple OpenAI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "openai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-final",
+      "name": "OpenAI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "Hello from OpenAI Agent!"
+            },
+            {
+              "name": "status",
+              "value": "processing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-data",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredential",
+        "genericAuthType": "httpHeaderAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-your-openai-key-here"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-3.5-turbo"
+            },
+            {
+              "name": "messages",
+              "value": "[{\"role\":\"user\",\"content\":\"Say hello!\"}]"
+            },
+            {
+              "name": "max_tokens",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "openai-call",
+      "name": "OpenAI API Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "openai-cred",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response",
+              "value": "OpenAI Response Processed"
+            },
+            {
+              "name": "status",
+              "value": "completed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "process-response",
+      "name": "Process Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"message\":\"OpenAI Agent Response\",\"status\":\"success\",\"timestamp\":\"2025-11-11\"}",
+        "options": {
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-API-Version",
+                "value": "1.0"
+              }
+            ]
+          }
+        }
+      },
+      "id": "final-response",
+      "name": "Final Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "OpenAI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "OpenAI API Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API Call": {
+      "main": [
+        [
+          {
+            "node": "Process Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Response": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "staticData": null
+}

@@ -1,0 +1,52 @@
+{
+  "name": "Step 1: Webhook Only",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Test Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Webhook received! Path: /test",
+        "options": {}
+      },
+      "id": "respond-1",
+      "name": "Simple Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Test Webhook": {
+      "main": [
+        [
+          {
+            "node": "Simple Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "staticData": null
+}

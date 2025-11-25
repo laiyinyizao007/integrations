@@ -1,0 +1,207 @@
+{
+  "name": "Step 3: Condition Logic",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-3",
+      "name": "Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "userInput",
+              "value": "hello"
+            },
+            {
+              "name": "isValid",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-input",
+      "name": "Set Input Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "true",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-condition",
+      "name": "Check Condition",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response",
+              "value": "Input is valid! Processing..."
+            },
+            {
+              "name": "status",
+              "value": "success"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response",
+              "value": "Input validation failed"
+            },
+            {
+              "name": "status",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"message\":\"Condition logic test\",\"status\":\"completed\"}",
+        "options": {
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "final-respond",
+      "name": "Final Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Input Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Input Data": {
+      "main": [
+        [
+          {
+            "node": "Check Condition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Condition": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Response": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "staticData": null
+}

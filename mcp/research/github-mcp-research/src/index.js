@@ -1,0 +1,1 @@
+console.log('Hello GitHub MCP Research!');

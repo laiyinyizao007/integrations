@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: Averivendell_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=${N8N_PORT:-5678}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - NODE_ENV=${NODE_ENV:-production}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-avery_n8n_secret_key_2025}
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET:-avery_jwt_secret_2025}
+      - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED:-false}
+      - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-info}
+      - EXECUTIONS_PROCESS=${EXECUTIONS_PROCESS:-main}
+      - EXECUTIONS_MODE=${EXECUTIONS_MODE:-regular}
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_SQLITE_DATABASE=${DB_SQLITE_DATABASE:-n8n.sqlite}
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-avery_n8n_2025}
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - n8n_network
+
+  # Optional: PostgreSQL database (uncomment if you want to use PostgreSQL instead of SQLite)
+  # postgres:
+  #   image: postgres:13
+  #   container_name: Averivendell_n8n_postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=n8n
+  #     - POSTGRES_USER=n8n
+  #     - POSTGRES_PASSWORD=n8n_password
+  #   volumes:
+  #     - ./postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - n8n_network
+
+  # Optional: Redis for caching (uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: Averivendell_n8n_redis
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./redis_data:/data
+  #   networks:
+  #     - n8n_network
+
+networks:
+  n8n_network:
+    driver: bridge
+
+volumes:
+  n8n_data:
+    driver: local
+  # postgres_data:
+  #   driver: local
+  # redis_data:
+  #   driver: local

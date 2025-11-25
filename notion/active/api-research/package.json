@@ -1,0 +1,36 @@
+{
+  "name": "notion-api-research",
+  "version": "1.0.0",
+  "description": "Notion API 研究项目 - 学习和演示如何使用 Notion API 进行各种操作",
+  "main": "src/notion-client.js",
+  "scripts": {
+    "query-db": "node examples/query-database.js",
+    "create-page": "node examples/create-page.js",
+    "update-page": "node examples/update-page.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "echo \"No linter configured\" && exit 0",
+    "build": "echo \"No build process configured\" && exit 0"
+  },
+  "keywords": [
+    "notion",
+    "api",
+    "research",
+    "automation",
+    "productivity"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@notionhq/client": "^5.3.0",
+    "dotenv": "^17.2.3"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}

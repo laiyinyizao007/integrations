@@ -1,0 +1,113 @@
+{
+  "name": "Telegram Echo Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "telegram-echo-bot",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 从Telegram消息中提取信息\nconst message = $input.item.json;\n\n// 提取关键数据\nconst chatId = message.message.chat.id;\nconst userName = message.message.from.first_name;\nconst userMessage = message.message.text;\nconst messageId = message.message.message_id;\n\n// 构建响应\nreturn {\n  json: {\n    chatId: chatId,\n    userName: userName,\n    userMessage: userMessage,\n    messageId: messageId,\n    replyText: `您好 ${userName}！\\n\\n您发送的消息是：\\n\"${userMessage}\"\\n\\n我是一个回声机器人，我会重复您说的话。 🔊`,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "process-message",
+      "name": "Process Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.replyText}}",
+        "replyToMessageId": "={{$json.messageId}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-reply",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "telegram",
+      "id": "1"
+    },
+    {
+      "name": "bot",
+      "id": "2"
+    },
+    {
+      "name": "beginner",
+      "id": "3"
+    }
+  ],
+  "meta": {
+    "instanceId": "learning-project"
+  },
+  "id": "telegram-echo-bot",
+  "versionId": "1.0.0",
+  "notes": "一个简单的Telegram回声机器人示例\n\n功能：\n- 接收用户发送的消息\n- 提取消息内容和用户信息\n- 回复用户并重复消息内容\n\n学习要点：\n1. Telegram Trigger节点的使用\n2. Function节点处理消息数据\n3. Telegram发送消息节点\n4. 数据在节点间的传递\n\n配置步骤：\n1. 在BotFather创建Telegram Bot\n2. 获取Bot Token\n3. 在n8n中配置Telegram凭据\n4. 激活工作流\n5. 向Bot发送消息测试"
+}

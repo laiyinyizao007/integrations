@@ -1,0 +1,97 @@
+{
+  "name": "Step 2: Input Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-2",
+      "name": "Agent Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "userInput",
+              "value": "test message"
+            },
+            {
+              "name": "timestamp",
+              "value": "2025-11-11"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "process-input",
+      "name": "Process Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"message\":\"Received\",\"input\":\"test message\",\"status\":\"success\"}",
+        "options": {
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-2",
+      "name": "JSON Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Agent Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Input": {
+      "main": [
+        [
+          {
+            "node": "JSON Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "staticData": null
+}

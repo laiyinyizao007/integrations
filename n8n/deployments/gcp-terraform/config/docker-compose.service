@@ -1,0 +1,21 @@
+[Unit]
+Description=Docker Compose Application Service for n8n
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt
+ExecStart=/usr/bin/docker compose -f /opt/docker-compose.yml up
+ExecStop=/usr/bin/docker compose -f /opt/docker-compose.yml down
+Restart=always
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,1 @@
+/home/averyubuntu/claude-config-sync/docs/INDEX.md

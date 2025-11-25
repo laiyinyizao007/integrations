@@ -1,0 +1,351 @@
+{
+  "name": "OpenAI Assistant Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "openai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-openai",
+      "name": "OpenAI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "userMessage",
+              "value": "={{ $json.body.message }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            },
+            {
+              "name": "isValid",
+              "value": "={{ !!$json.body.message && $json.body.message.length > 0 && $json.body.message.length <= 1000 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-validation",
+      "name": "Check Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredential",
+        "genericAuthType": "httpHeaderAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$credentials.apiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-3.5-turbo"
+            },
+            {
+              "name": "messages",
+              "value": "[{\"role\":\"system\",\"content\":\"You are a helpful AI assistant. Respond to user messages in a friendly and informative way.\"},{\"role\":\"user\",\"content\":\"{{$json.userMessage}}\"}]"
+            },
+            {
+              "name": "max_tokens",
+              "value": "500"
+            },
+            {
+              "name": "temperature",
+              "value": "0.7"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-openai",
+      "name": "Call OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        900,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "response",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "model",
+              "value": "={{ $json.model }}"
+            },
+            {
+              "name": "usage",
+              "value": "={{ $json.usage }}"
+            },
+            {
+              "name": "processedAt",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-success",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "消息格式无效：消息不能为空且长度不能超过1000字符"
+            },
+            {
+              "name": "status",
+              "value": "error"
+            },
+            {
+              "name": "code",
+              "value": "INVALID_INPUT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-error",
+      "name": "Format Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "responseCode": "={{ $json.status === 'error' ? 400 : 200 }}",
+        "options": {
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-API-Version",
+                "value": "1.0.0"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "responseCode": 400,
+        "options": {
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "X-API-Version",
+                "value": "1.0.0"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "OpenAI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Format Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "instanceId": "openai-agent-instance"
+  },
+  "tags": [
+    {
+      "name": "openai",
+      "createdAt": "2025-11-11T10:22:24.000Z",
+      "updatedAt": "2025-11-11T10:22:24.000Z"
+    },
+    {
+      "name": "ai",
+      "createdAt": "2025-11-11T10:22:24.000Z",
+      "updatedAt": "2025-11-11T10:22:24.000Z"
+    },
+    {
+      "name": "api",
+      "createdAt": "2025-11-11T10:22:24.000Z",
+      "updatedAt": "2025-11-11T10:22:24.000Z"
+    }
+  ]
+}

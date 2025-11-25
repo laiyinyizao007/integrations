@@ -1,0 +1,54 @@
+# Development files
+src/
+test/
+tsconfig.json
+.eslintrc.json
+jest.config.js
+**/*.test.ts
+**/*.test.js
+
+# Node modules (should be excluded by default, but being explicit)
+node_modules/
+
+# Development scripts
+setup-env.sh
+backup-workflows.js
+quick-backup.js
+test-connection.js
+
+# Documentation for development
+docs/
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts (keep only out/)
+*.vsix
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Package manager
+package-lock.json
+yarn.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Example files (keep .env as it's needed for configuration)
+.env.example

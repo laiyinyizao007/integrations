@@ -1,0 +1,84 @@
+# ============================================
+# Docker Compose 配置 - n8n + FastAPI
+# ============================================
+
+version: '3.8'
+
+services:
+  # n8n 工作流自动化服务
+  n8n:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: n8n
+    user: "node"
+    ports:
+      - "5678:5678"
+    environment:
+      # n8n 基础配置
+      - N8N_HOST=${N8N_HOST:-n8n.example.com}
+      - WEBHOOK_URL=${WEBHOOK_URL:-https://n8n.example.com/}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      
+      # 允许外部包（用于 socket.io）
+      - NODE_FUNCTION_ALLOW_EXTERNAL=socket.io,socket.io-client
+      
+      # 时区设置
+      - TZ=Asia/Shanghai
+      
+      # 执行模式（可选：own, queue）
+      - EXECUTIONS_MODE=regular
+      
+      # 日志级别
+      - N8N_LOG_LEVEL=info
+      
+      # 安全设置
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_METRICS=false
+    
+    volumes:
+      # n8n 数据持久化
+      - n8n_data:/home/node/.n8n
+      # 本地文件存储
+      - ${HOME}/n8n-local-files:/data/files
+    
+    restart: unless-stopped
+    
+    networks:
+      - n8n-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # FastAPI 服务（可选）
+  fastapi:
+    image: ${FASTAPI_IMAGE:-tiangolo/uvicorn-gunicorn-fastapi:python3.11}
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# 网络配置
+networks:
+  n8n-network:
+    driver: bridge
+
+# 卷配置
+volumes:
+  n8n_data:
+    driver: local

@@ -1,0 +1,251 @@
+{
+  "name": "Weather Data Processor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "method": "GET",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "39.9042"
+            },
+            {
+              "name": "longitude",
+              "value": "116.4074"
+            },
+            {
+              "name": "current",
+              "value": "temperature_2m,relative_humidity_2m,wind_speed_10m"
+            },
+            {
+              "name": "timezone",
+              "value": "Asia/Shanghai"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-weather",
+      "name": "Fetch Beijing Weather",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ],
+      "notes": "获取北京实时天气数据\n使用免费的Open-Meteo API"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 处理天气数据\nconst data = $input.item.json;\n\n// 提取当前天气信息\nconst current = data.current || {};\nconst temperature = current.temperature_2m;\nconst humidity = current.relative_humidity_2m;\nconst windSpeed = current.wind_speed_10m;\n\n// 判断温度级别\nlet tempLevel = '';\nif (temperature < 0) {\n  tempLevel = '极冷 🥶';\n} else if (temperature < 10) {\n  tempLevel = '寒冷 ❄️';\n} else if (temperature < 20) {\n  tempLevel = '凉爽 🍃';\n} else if (temperature < 30) {\n  tempLevel = '舒适 ☀️';\n} else {\n  tempLevel = '炎热 🔥';\n}\n\n// 判断风速级别\nlet windLevel = '';\nif (windSpeed < 5) {\n  windLevel = '微风';\n} else if (windSpeed < 15) {\n  windLevel = '中等风速';\n} else {\n  windLevel = '大风';\n}\n\n// 生成天气报告\nconst weatherReport = {\n  location: '北京',\n  timestamp: data.current.time,\n  temperature: {\n    value: temperature,\n    unit: '°C',\n    level: tempLevel\n  },\n  humidity: {\n    value: humidity,\n    unit: '%'\n  },\n  wind: {\n    speed: windSpeed,\n    unit: 'km/h',\n    level: windLevel\n  },\n  summary: `${tempLevel} | 温度 ${temperature}°C | 湿度 ${humidity}% | 风速 ${windSpeed} km/h (${windLevel})`,\n  isComfortable: temperature >= 15 && temperature <= 25 && humidity < 70,\n  updatedAt: new Date().toISOString()\n};\n\nreturn { json: weatherReport };"
+      },
+      "id": "process-data",
+      "name": "Process Weather Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "notes": "处理天气数据并生成报告"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isComfortable}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-comfortable",
+      "name": "Is Weather Comfortable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "notes": "判断天气是否舒适"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "=✅ 天气舒适！\n\n📍 位置：{{$json.location}}\n🌡️ 温度：{{$json.temperature.value}}{{$json.temperature.unit}} {{$json.temperature.level}}\n💧 湿度：{{$json.humidity.value}}{{$json.humidity.unit}}\n💨 风速：{{$json.wind.speed}} {{$json.wind.unit}} ({{$json.wind.level}})\n\n今天是出门的好日子！☀️"
+            },
+            {
+              "name": "status",
+              "value": "comfortable"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "comfortable-message",
+      "name": "Comfortable Weather Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "=⚠️ 天气不太舒适\n\n📍 位置：{{$json.location}}\n🌡️ 温度：{{$json.temperature.value}}{{$json.temperature.unit}} {{$json.temperature.level}}\n💧 湿度：{{$json.humidity.value}}{{$json.humidity.unit}}\n💨 风速：{{$json.wind.speed}} {{$json.wind.unit}} ({{$json.wind.level}})\n\n建议注意防护！"
+            },
+            {
+              "name": "status",
+              "value": "uncomfortable"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "uncomfortable-message",
+      "name": "Uncomfortable Weather Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1340,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Beijing Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Beijing Weather": {
+      "main": [
+        [
+          {
+            "node": "Process Weather Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Weather Data": {
+      "main": [
+        [
+          {
+            "node": "Is Weather Comfortable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Weather Comfortable?": {
+      "main": [
+        [
+          {
+            "node": "Comfortable Weather Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Uncomfortable Weather Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comfortable Weather Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Uncomfortable Weather Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "tutorial",
+      "id": "1"
+    },
+    {
+      "name": "beginner",
+      "id": "2"
+    },
+    {
+      "name": "api",
+      "id": "3"
+    }
+  ],
+  "meta": {
+    "instanceId": "learning-project"
+  },
+  "id": "weather-data-processor",
+  "versionId": "1.0.0",
+  "notes": "🌤️ 天气数据处理工作流\n\n这是一个简单的示例工作流，展示了以下概念：\n\n✨ 功能：\n1. 调用免费天气API获取北京实时天气\n2. 处理和分析天气数据\n3. 根据温度和湿度判断是否舒适\n4. 生成不同的天气报告\n\n📚 学习要点：\n1. Manual Trigger - 手动触发\n2. HTTP Request - 调用外部API\n3. Function节点 - 数据处理和逻辑\n4. IF节点 - 条件判断\n5. Set节点 - 设置输出数据\n6. Merge节点 - 合并分支结果\n\n🚀 使用方法：\n1. 点击左上角 'Execute Workflow' 按钮\n2. 查看每个节点的输出数据\n3. 尝试修改温度阈值\n4. 更改城市坐标获取不同地区天气\n\n💡 扩展建议：\n- 添加更多城市\n- 保存历史数据到数据库\n- 发送通知到Telegram\n- 创建定时任务每天获取天气\n\n🌐 API来源：Open-Meteo (免费，无需API密钥)\nhttps://open-meteo.com/"
+}

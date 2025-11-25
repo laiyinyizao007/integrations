@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Averivendell n8n - VSCode 预览</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .iframe-container {
+            position: relative;
+            height: calc(100vh - 140px);
+            min-height: 600px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .error {
+            background: #dc3545;
+        }
+
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+
+        .info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .info p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .refresh-btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .refresh-btn:hover {
+            background: #005aa3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Averivendell n8n</h1>
+            <p>工作流自动化平台 - VSCode 集成预览</p>
+        </div>
+
+        <div class="info">
+            <h3>📋 使用说明</h3>
+            <p><strong>URL:</strong> http://localhost:5678</p>
+            <p><strong>用户名:</strong> admin</p>
+            <p><strong>密码:</strong> avery_n8n_2025</p>
+            <button class="refresh-btn" onclick="refreshN8n()">🔄 刷新页面</button>
+        </div>
+
+        <div class="iframe-container">
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>正在连接到 n8n...</p>
+                <p id="status-text">检查服务状态...</p>
+            </div>
+            <iframe id="n8n-iframe" src="http://localhost:5678" onload="onN8nLoad()" onerror="onN8nError()"></iframe>
+        </div>
+    </div>
+
+    <div id="status" class="status">🔄 连接中...</div>
+
+    <script>
+        let statusElement = document.getElementById('status');
+        let loadingElement = document.getElementById('loading');
+        let iframeElement = document.getElementById('n8n-iframe');
+
+        function updateStatus(message, isError = false) {
+            statusElement.textContent = message;
+            statusElement.className = isError ? 'status error' : 'status';
+        }
+
+        function onN8nLoad() {
+            loadingElement.style.display = 'none';
+            iframeElement.style.display = 'block';
+            updateStatus('✅ 已连接到 n8n');
+        }
+
+        function onN8nError() {
+            loadingElement.innerHTML = `
+                <div style="color: #dc3545; text-align: center;">
+                    <h3>❌ 连接失败</h3>
+                    <p>无法连接到 n8n 服务</p>
+                    <p>请确保：</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Docker Desktop 正在运行</li>
+                        <li>n8n 容器已启动</li>
+                        <li>端口 5678 未被占用</li>
+                    </ul>
+                    <br>
+                    <button class="refresh-btn" onclick="checkN8nStatus()">🔍 检查状态</button>
+                    <button class="refresh-btn" onclick="refreshN8n()">🔄 重试连接</button>
+                </div>
+            `;
+            updateStatus('❌ 连接失败', true);
+        }
+
+        async function checkN8nStatus() {
+            try {
+                updateStatus('🔍 检查服务状态...');
+                const response = await fetch('http://localhost:5678/rest/workflows', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:avery_n8n_2025')
+                    }
+                });
+
+                if (response.ok) {
+                    updateStatus('✅ n8n 服务运行正常');
+                    refreshN8n();
+                } else {
+                    updateStatus('❌ n8n 服务响应异常', true);
+                }
+            } catch (error) {
+                updateStatus('❌ 无法连接到 n8n', true);
+                console.error('Status check failed:', error);
+            }
+        }
+
+        function refreshN8n() {
+            loadingElement.style.display = 'block';
+            iframeElement.style.display = 'none';
+            iframeElement.src = iframeElement.src;
+            updateStatus('🔄 刷新中...');
+        }
+
+        // 页面加载时检查状态
+        window.addEventListener('load', function() {
+            document.getElementById('status-text').textContent = '正在连接...';
+            setTimeout(checkN8nStatus, 1000);
+        });
+
+        // 定期检查连接状态
+        setInterval(checkN8nStatus, 30000); // 每30秒检查一次
+    </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+{
+  "name": "n8n-vscode-connector",
+  "displayName": "n8n VSCode Connector",
+  "description": "Connect and manage n8n workflows deployed on Hugging Face Spaces from VSCode",
+  "version": "1.0.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:n8n-vscode-connector.connect",
+    "onCommand:n8n-vscode-connector.listWorkflows",
+    "onCommand:n8n-vscode-connector.executeWorkflow"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "n8n-vscode-connector.connect",
+        "title": "n8n: Connect to Instance"
+      },
+      {
+        "command": "n8n-vscode-connector.listWorkflows",
+        "title": "n8n: List Workflows"
+      },
+      {
+        "command": "n8n-vscode-connector.executeWorkflow",
+        "title": "n8n: Execute Workflow"
+      },
+      {
+        "command": "n8n-vscode-connector.viewWorkflow",
+        "title": "n8n: View Workflow Details"
+      }
+    ],
+    "configuration": {
+      "title": "n8n VSCode Connector",
+      "properties": {
+        "n8n-vscode-connector.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL of the n8n instance (e.g., https://your-space.hf.space)"
+        },
+        "n8n-vscode-connector.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for n8n authentication"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/test/**/*.test.ts"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts"
+    ]
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "eslint": "^8.28.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^17.2.3"
+  },
+  "keywords": [
+    "n8n",
+    "automation",
+    "workflow",
+    "huggingface",
+    "api"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/n8n-vscode-connector"
+  }
+}

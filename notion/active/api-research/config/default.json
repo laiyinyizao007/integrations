@@ -1,0 +1,24 @@
+{
+  "notion": {
+    "apiVersion": "2022-06-28",
+    "timeout": 30000,
+    "retryAttempts": 3,
+    "retryDelay": 1000
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "enableConsole": true,
+    "enableFile": false,
+    "logFile": "logs/notion-api.log"
+  },
+  "rateLimit": {
+    "requestsPerSecond": 3,
+    "burstLimit": 5
+  },
+  "cache": {
+    "enabled": false,
+    "ttl": 300000,
+    "maxSize": 100
+  }
+}

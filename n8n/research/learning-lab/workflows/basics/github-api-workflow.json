@@ -1,0 +1,123 @@
+{
+  "name": "GitHub API Integration",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/microsoft/vscode/releases/latest",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-workflow/1.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Get Latest Release",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const release = $input.item.json;\n\nreturn {\n  name: release.name,\n  tag_name: release.tag_name,\n  published_at: release.published_at,\n  html_url: release.html_url,\n  body: release.body?.substring(0, 200) + '...',\n  author: release.author?.login,\n  download_count: release.assets?.reduce((sum, asset) => sum + asset.download_count, 0) || 0\n};"
+      },
+      "name": "Extract Release Info",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "summary",
+              "value": "=VSCode最新版本: {{$node[\"Extract Release Info\"].json[\"name\"]}} ({{$node[\"Extract Release Info\"].json[\"tag_name\"]}})"
+            },
+            {
+              "name": "release_date",
+              "value": "=发布日期: {{$node[\"Extract Release Info\"].json[\"published_at\"]}}"
+            },
+            {
+              "name": "downloads",
+              "value": "=总下载量: {{$node[\"Extract Release Info\"].json[\"download_count\"]}}"
+            },
+            {
+              "name": "url",
+              "value": "=链接: {{$node[\"Extract Release Info\"].json[\"html_url\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Format Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Release",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Release": {
+      "main": [
+        [
+          {
+            "node": "Extract Release Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Release Info": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null
+}

@@ -1,0 +1,19 @@
+{
+  "name": "github-mcp-research",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "jest": "^30.2.0"
+  }
+}
