@@ -1,0 +1,205 @@
+name: Security Check
+
+on:
+  # Run on pull requests
+  pull_request:
+    branches: [ main, master ]
+
+  # Run weekly on Monday at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * 1'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better secret detection
+
+    - name: Check for hardcoded secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: Scan for API keys and tokens
+      run: |
+        echo "Scanning for potential API keys and tokens..."
+
+        # Check for common API key patterns
+        echo "Checking for hardcoded API keys..."
+        if grep -r -E "(NOTION_API_KEY|NOTION_TOKEN|N8N_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|GITHUB_TOKEN)\\s*=\\s*[\"'][^\"']+[\"']" \
+           --exclude-dir=node_modules \
+           --exclude-dir=.git \
+           --exclude-dir=venv \
+           --exclude="*.example" \
+           --exclude="*.md" \
+           --exclude="SECURITY.md" \
+           . ; then
+          echo "::error::Found hardcoded API keys! Check files above."
+          exit 1
+        else
+          echo "✅ No hardcoded API keys found"
+        fi
+
+    - name: Verify SECURITY.md exists
+      run: |
+        if [ ! -f "SECURITY.md" ]; then
+          echo "::warning::SECURITY.md file not found. This file should document security practices."
+          exit 0
+        else
+          echo "✅ SECURITY.md exists"
+
+          # Check if SECURITY.md mentions environment variables
+          if grep -q "environment variable" SECURITY.md || grep -q "\.bashrc" SECURITY.md; then
+            echo "✅ SECURITY.md documents environment variables"
+          else
+            echo "::warning::SECURITY.md should document environment variable usage"
+          fi
+        fi
+
+    - name: Check .env file format
+      run: |
+        echo "Checking .env files..."
+
+        # Find all .env files (excluding .env.example)
+        ENV_FILES=$(find . -name ".env" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/venv/*")
+
+        if [ -n "$ENV_FILES" ]; then
+          echo "::warning::Found .env files in repository:"
+          echo "$ENV_FILES"
+          echo ""
+          echo "⚠️ .env files should NOT be committed to git"
+          echo "   Use .env.example for templates instead"
+          echo "   Configure actual values in ~/.bashrc"
+
+          # Check if .env files contain actual values (not just comments/examples)
+          for file in $ENV_FILES; do
+            if grep -v "^#" "$file" | grep -v "^$" | grep "=" | grep -v "your_" | grep -v "example" > /dev/null; then
+              echo "::error::$file appears to contain actual credentials!"
+              exit 1
+            fi
+          done
+        else
+          echo "✅ No .env files found in repository"
+        fi
+
+        # Check for .env.example files
+        EXAMPLE_FILES=$(find . -name ".env.example" -not -path "*/node_modules/*" -not -path "*/.git/*")
+        if [ -n "$EXAMPLE_FILES" ]; then
+          echo "✅ Found .env.example template files (good practice)"
+          echo "$EXAMPLE_FILES"
+        fi
+
+    - name: Verify .gitignore includes sensitive files
+      run: |
+        if [ ! -f ".gitignore" ]; then
+          echo "::warning::.gitignore file not found"
+          exit 0
+        fi
+
+        echo "Checking .gitignore for sensitive file patterns..."
+
+        REQUIRED_PATTERNS=(
+          ".env"
+          "*.key"
+          "*.pem"
+          "*.p12"
+          "config.json"
+          "secrets.yml"
+        )
+
+        MISSING_PATTERNS=()
+        for pattern in "${REQUIRED_PATTERNS[@]}"; do
+          if ! grep -q "$pattern" .gitignore; then
+            MISSING_PATTERNS+=("$pattern")
+          fi
+        done
+
+        if [ ${#MISSING_PATTERNS[@]} -gt 0 ]; then
+          echo "::warning::The following patterns should be in .gitignore:"
+          printf '%s\n' "${MISSING_PATTERNS[@]}"
+        else
+          echo "✅ .gitignore includes common sensitive file patterns"
+        fi
+
+    - name: Check Node.js projects for outdated dependencies
+      if: hashFiles('**/package.json') != ''
+      run: |
+        echo "Checking Node.js dependencies..."
+
+        # Find all package.json files
+        PACKAGE_FILES=$(find . -name "package.json" -not -path "*/node_modules/*")
+
+        for file in $PACKAGE_FILES; do
+          echo "Checking $file..."
+          dir=$(dirname "$file")
+          cd "$dir"
+
+          if [ -f "package-lock.json" ]; then
+            npm audit --audit-level=moderate || echo "::warning::Security vulnerabilities found in $file"
+          fi
+
+          cd - > /dev/null
+        done
+      continue-on-error: true
+
+    - name: Check Python projects for outdated dependencies
+      if: hashFiles('**/requirements.txt') != ''
+      run: |
+        echo "Checking Python dependencies..."
+
+        # Install safety for Python dependency checking
+        pip install safety
+
+        # Find all requirements.txt files
+        REQ_FILES=$(find . -name "requirements.txt" -not -path "*/venv/*" -not -path "*/node_modules/*")
+
+        for file in $REQ_FILES; do
+          echo "Checking $file..."
+          safety check --file "$file" --continue-on-error || echo "::warning::Security vulnerabilities found in $file"
+        done
+      continue-on-error: true
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "================================"
+        echo "Security Check Summary"
+        echo "================================"
+        echo ""
+        echo "✅ Checks completed"
+        echo ""
+        echo "Review warnings above and fix any issues found."
+        echo ""
+        echo "Security Best Practices:"
+        echo "  - Use environment variables in ~/.bashrc for all secrets"
+        echo "  - Never commit .env files with actual credentials"
+        echo "  - Keep dependencies up to date"
+        echo "  - Review SECURITY.md for guidelines"
+        echo ""
+
+  notify:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+    - name: Notify on failure
+      run: |
+        echo "::error::Security check failed! Review the logs above."
+        echo "Common issues:"
+        echo "  1. Hardcoded API keys or tokens"
+        echo "  2. .env files with actual credentials"
+        echo "  3. Missing .gitignore patterns"
+        echo "  4. Outdated dependencies with vulnerabilities"
+        echo ""
+        echo "Fix these issues before merging."
